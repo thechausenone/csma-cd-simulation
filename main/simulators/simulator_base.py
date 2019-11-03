@@ -6,7 +6,8 @@ class Simulator(ABC):
     def __init__(self, num_nodes, arrival_rate, duration=1000):
         self.stability_criteria = 0.05
         self.duration = duration
-        self.transmission_time = 1500 / 1e6 # packet length / channel speed [secs]
+        self.packet_length = 1500
+        self.transmission_time = self.packet_length  / 1e6 # packet length / channel speed [secs]
         self.prop_time = 10 / ((2/3) * 3e8) # distance / prop_speed [secs]
         self.nodes = [Node(i, duration, arrival_rate) for i in range(0, num_nodes)]
 
