@@ -11,6 +11,7 @@ class Node:
         self.duration = duration
         self.arrival_rate = arrival_rate
         self.queue = self.__generate_packet_times()
+        self.min_packet_time = self.queue[0]
 
     def __generate_packet_times(self):
         curr_time = 0
@@ -36,16 +37,17 @@ class Node:
     def get_queue_head_time(self):
         if not self.queue:
             return None
-        return self.queue[0]
+        return max(self.queue[0], self.min_packet_time)
 
     def remove_queue_head_time(self):
         if self.queue:
             self.queue.pop(0)
+            if self.queue and self.min_packet_time < self.queue[0]:
+                self.min_packet_time = self.queue[0]
 
-    # Set each element in queue that's less than `time` to be equal to `time`
-    def update_queue_times(self, time):
-        for index, item in enumerate(self.queue):
-            if item < time:
-                self.queue[index] = time
-            else:
-                break
+    # Update minimum packet time to be used for deterimining queue head time
+    # NOTE: This is an optimization so we do not have to iterate over every queue to update packet
+    # times
+    def update_min_packet_times(self, time):
+        if self.min_packet_time < time:
+            self.min_packet_time = time

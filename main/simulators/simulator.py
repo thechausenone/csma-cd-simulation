@@ -98,14 +98,14 @@ class Simulator(SimulatorBase):
                     dest_node.reset_collisions()
                 else:
                     _, busy_upper_bound = self.compute_bounds(src_node, dest_node)
-                    dest_node.update_queue_times(wait_time + busy_upper_bound)
+                    dest_node.update_min_packet_times(wait_time + busy_upper_bound)
             elif status == Status.IDLE:
                 continue
             elif status == Status.BUSY:
                 _, busy_upper_bound = self.compute_bounds(src_node, dest_node)
                 # Persistent case
                 if self.persistent_flag:
-                    dest_node.update_queue_times(busy_upper_bound)
+                    dest_node.update_min_packet_times(busy_upper_bound)
                 # Non-persistent case
                 else:
                     dest_node.increment_busy_counter()
@@ -116,7 +116,7 @@ class Simulator(SimulatorBase):
                         dest_node.reset_busy_collisions()
                         dest_node.busy_dropped_packets += 1
                     else:
-                        dest_node.update_queue_times(busy_upper_bound + wait_time)
+                        dest_node.update_min_packet_times(busy_upper_bound + wait_time)
 
         # For source node
         if collision_occured:
@@ -136,11 +136,11 @@ class Simulator(SimulatorBase):
                         dest_node_of_min_props = dest_node
 
                 _, busy_upper_bound = self.compute_bounds(src_node, dest_node_of_min_props)
-                src_node.update_queue_times(wait_time + busy_upper_bound)
+                src_node.update_min_packet_times(wait_time + busy_upper_bound)
         # Successful transmission (no collision on the line)
         else:
             src_node.num_successfully_transmitted += 1
-            src_node.update_queue_times(src_node.get_queue_head_time() + self.transmission_time)
+            src_node.update_min_packet_times(src_node.get_queue_head_time() + self.transmission_time)
             src_node.remove_queue_head_time()
             src_node.reset_collisions()
     
