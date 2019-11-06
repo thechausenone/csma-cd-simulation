@@ -8,6 +8,7 @@ class PersistentSimulator(Simulator):
         super().__init__(num_nodes=num_nodes, arrival_rate=arrival_rate)
         self.persistent_flag = persistent_flag
         self.num_dropped = 0
+        self.busy_packets_dropped = 0
 
     # Run one iteration of the simulation
     def run_single_iteration(self):
@@ -103,7 +104,7 @@ class PersistentSimulator(Simulator):
                     if wait_time is None:
                         dest_node.remove_queue_head_time()
                         dest_node.reset_busy_collisions()
-                        self.num_dropped += 1
+                        self.busy_packets_dropped += 1
                     else:
                         dest_node.update_queue_times(busy_upper_bound + wait_time)
 
@@ -128,6 +129,7 @@ class PersistentSimulator(Simulator):
                 src_node.update_queue_times(wait_time + busy_upper_bound)
         else:
             src_node.num_successfully_transmitted += 1
+            src_node.update_queue_times(src_node.get_queue_head_time() + self.transmission_time)
             src_node.remove_queue_head_time()
             src_node.reset_collisions()
     
@@ -140,7 +142,7 @@ class PersistentSimulator(Simulator):
             total_num_collisions += node.num_collisions
 
         print("total_num_successful: {}, total_num_collisions: {}, total_dropped_packets: {}".format(total_num_successful, total_num_collisions, self.num_dropped))
-        efficiency = total_num_successful / (total_num_collisions + total_num_successful)
+        efficiency = total_num_successful / (total_num_collisions + total_num_successful + self.busy_packets_dropped)
         throughput = (total_num_successful * self.packet_length) / (self.duration * 1e6)
 
         return (efficiency, throughput)
