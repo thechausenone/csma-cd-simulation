@@ -2,6 +2,7 @@ from utils.random_variable_generator import RandomVariableGenerator
 
 class Node:
     def __init__(self, node_id, duration, arrival_rate):
+        self.busy_check_counter = 0
         self.collision_counter = 0
         self.num_collisions = 0
         self.num_successfully_transmitted = 0
@@ -9,7 +10,6 @@ class Node:
         self.duration = duration
         self.arrival_rate = arrival_rate
         self.queue = self.__generate_packet_times()
-        self.total_queue_packets = len(self.queue) # TODO: remove this?
 
     def __generate_packet_times(self):
         curr_time = 0
@@ -21,10 +21,16 @@ class Node:
 
     def reset_collisions(self):
         self.collision_counter = 0
-    
+
     def increment_collisions(self):
         self.collision_counter += 1
         self.num_collisions += 1
+
+    def reset_busy_collisions(self):
+        self.busy_check_counter = 0
+    
+    def increment_busy_counter(self):
+        self.busy_check_counter += 1
 
     def get_queue_head_time(self):
         if not self.queue:

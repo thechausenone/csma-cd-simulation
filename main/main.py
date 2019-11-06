@@ -15,19 +15,29 @@ def main(question_num):
 def __run_question_0():
     results = []
     for i in [20, 40, 60, 80, 100]:
-        metrics = PersistentSimulator(num_nodes=i, arrival_rate=12).run_single_iteration()
+        metrics = PersistentSimulator(num_nodes=i, arrival_rate=5, persistent_flag=True).run_single_iteration()
         results.append([i, metrics[0], metrics[1]])
         __write_to_csv(['num_nodes', 'efficiency', 'throughput'], results)
 
 # Simulate persistent CSMA/CD protocol
 def __run_question_1():
-    result = PersistentSimulator(num_nodes=100, arrival_rate=5).run_single_iteration()
-    print(result)
+    results = []
+    for arrival_rate in [7, 10, 20]:
+        for num_nodes in [20, 40, 60, 80, 100]:
+            metrics = PersistentSimulator(num_nodes=num_nodes, arrival_rate=arrival_rate, persistent_flag=True).run_single_iteration()
+            results.append([arrival_rate, num_nodes, metrics[0], metrics[1]])
+            __write_to_csv(['arrival_rate', 'num_nodes', 'efficiency', 'throughput'], results)
+    
 
 # Simulate non-persistent CSMA/CD protocol
 def __run_question_2():
-    pass
-
+    results = []
+    for arrival_rate in [7, 10, 20]:
+        for num_nodes in [20, 40, 60, 80, 100]:
+            metrics = PersistentSimulator(num_nodes=num_nodes, arrival_rate=arrival_rate, persistent_flag=False).run_single_iteration()
+            results.append([arrival_rate, num_nodes, metrics[0], metrics[1]])
+            __write_to_csv(['arrival_rate', 'num_nodes', 'efficiency', 'throughput'], results)
+ 
 # Output results to a csv file
 def __write_to_csv(headers, results):
     with open('output.csv', mode='w') as output_file:
