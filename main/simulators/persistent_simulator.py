@@ -139,7 +139,7 @@ class PersistentSimulator(Simulator):
             total_num_successful += node.num_successfully_transmitted
             total_num_collisions += node.num_collisions
 
-        print("total_num_successful: {}, total_num_collisions: {}, total_orig_num_packets: {}, total_dropped_packets: {}".format(total_num_successful, total_num_collisions, total_orig_num_packets, self.num_dropped))
+        print("total_num_successful: {}, total_num_collisions: {}, total_dropped_packets: {}".format(total_num_successful, total_num_collisions, self.num_dropped))
         efficiency = total_num_successful / (total_num_collisions + total_num_successful)
         throughput = (total_num_successful * self.packet_length) / (self.duration * 1e6)
 
