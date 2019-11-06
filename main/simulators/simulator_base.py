@@ -1,16 +1,15 @@
+from nodes.node import Node
 from utils.random_variable_generator import RandomVariableGenerator
 from abc import ABC, abstractmethod
 
-class Simulator(ABC):
+class SimulatorBase(ABC):
     def __init__(self, num_nodes, arrival_rate, duration=1000):
         self.stability_criteria = 0.05
         self.duration = duration
-        self.num_nodes = num_nodes
-        self.arrival_rate = arrival_rate
-        self.channel_speed = 1e6 # bits/sec
-        self.packet_length = 1500 # bits
-        self.distance = 10 # meters
-        self.prop_speed = (2/3) * 3e8 # meters/sec
+        self.packet_length = 1500
+        self.transmission_time = self.packet_length  / 1e6 # packet length / channel speed [secs]
+        self.prop_time = 10 / ((2/3) * 3e8) # distance / prop_speed [secs]
+        self.nodes = [Node(i, duration, arrival_rate) for i in range(0, num_nodes)]
 
     @abstractmethod
     def run_single_iteration(self):
