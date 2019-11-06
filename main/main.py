@@ -14,10 +14,11 @@ def main(question_num):
 # Verify if initial simulation results are correct
 def __run_question_0():
     results = []
-    for i in [20, 40, 60, 80, 100]:
-        metrics = PersistentSimulator(num_nodes=i, arrival_rate=5, persistent_flag=True).run_single_iteration()
-        results.append([i, metrics[0], metrics[1]])
-        __write_to_csv(['num_nodes', 'efficiency', 'throughput'], results)
+    for arrival_rate in [5, 12]:
+        for num_nodes in [20, 40, 60, 80, 100]:
+            metrics = PersistentSimulator(num_nodes=num_nodes, arrival_rate=arrival_rate, persistent_flag=True).run_single_iteration()
+            results.append([arrival_rate, num_nodes, metrics[0], metrics[1]])
+            __write_to_csv(['arrival_rate', 'num_nodes', 'efficiency', 'throughput'], results)
 
 # Simulate persistent CSMA/CD protocol
 def __run_question_1():

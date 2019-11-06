@@ -55,10 +55,10 @@ class PersistentSimulator(Simulator):
                 if dest_node_packet_time is None:
                     continue
                 busy_lower_bound, busy_upper_bound = self.compute_bounds(src_node, node)
-                if dest_node_packet_time < busy_lower_bound:
+                if dest_node_packet_time <= busy_lower_bound:
                     collision_occured = True
                     statuses.append((Status.COLLISION, node))
-                elif dest_node_packet_time > busy_upper_bound:
+                elif dest_node_packet_time >= busy_upper_bound:
                     statuses.append((Status.IDLE, node))
                 else:
                     statuses.append((Status.BUSY, node))
@@ -68,66 +68,6 @@ class PersistentSimulator(Simulator):
             return result
 
         return statuses
-
-    # def get_node_statuses(self, src_node):
-    #     statuses = []
-    #     left_ptr = src_node.id - 1
-    #     right_ptr = src_node.id + 1
-
-    #     while left_ptr >= 0 or right_ptr < len(self.nodes):
-    #         left_node = None
-    #         right_node = None
-    #         left_status = None
-    #         right_status = None
-
-    #         if left_ptr >= 0:
-    #             left_node = self.nodes[left_ptr]
-    #             left_status = self.get_node_status(src_node, left_node)
-    #             left_ptr -= 1
-
-    #         if right_ptr < len(self.nodes):
-    #             right_node = self.nodes[right_ptr]
-    #             right_status = self.get_node_status(src_node, right_node)
-    #             right_ptr += 1
-            
-    #         if left_status and right_status and left_status[0] == Status.COLLISION and right_status[0] == Status.COLLISION:
-    #             left_node_time = left_node.get_queue_head_time()
-    #             right_node_time = right_node.get_queue_head_time()
-    #             if left_node_time < right_node_time:
-    #                 return [left_status]
-    #             else:
-    #                 return [right_status]
-    #             break
-    #         elif left_status and left_status[0] == Status.COLLISION:
-    #             return [left_status]
-    #         elif right_status and right_status[0] == Status.COLLISION:
-    #             return [right_status]
-    #         elif left_status and right_status:
-    #             statuses.append(left_status)
-    #             statuses.append(right_status)
-    #         elif left_status: 
-    #             statuses.append(left_status)
-    #         elif right_status:
-    #             statuses.append(right_status)
-    #     return statuses
-
-    # def get_node_status(self, src_node, dest_node):
-    #     status = None
-    #     dest_node_packet_time = dest_node.get_queue_head_time()
-
-    #     # source does not need to account for destination because there are no packets in the queue
-    #     if dest_node_packet_time is None:
-    #         return status
-
-    #     busy_lower_bound, busy_upper_bound = self.compute_bounds(src_node, dest_node)
-    #     if dest_node_packet_time < busy_lower_bound:
-    #         status = ((Status.COLLISION, dest_node))
-    #     elif dest_node_packet_time > busy_upper_bound:
-    #         status = ((Status.IDLE, dest_node))
-    #     else:
-    #         status = ((Status.BUSY, dest_node))
-        
-    #     return status
 
     def compute_bounds(self, src_node, dest_node):
         num_props = abs(dest_node.id - src_node.id)
@@ -199,10 +139,7 @@ class PersistentSimulator(Simulator):
             total_num_successful += node.num_successfully_transmitted
             total_num_collisions += node.num_collisions
 
-        print(total_num_successful)
-        print(total_num_collisions)
-        print(self.num_dropped)
-
+        print("total_num_successful: {}, total_num_collisions: {}, total_orig_num_packets: {}, total_dropped_packets: {}".format(total_num_successful, total_num_collisions, total_orig_num_packets, self.num_dropped))
         efficiency = total_num_successful / (total_num_collisions + total_num_successful)
         throughput = (total_num_successful * self.packet_length) / (self.duration * 1e6)
 
