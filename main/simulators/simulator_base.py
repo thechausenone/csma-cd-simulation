@@ -2,7 +2,7 @@ from nodes.node import Node
 from utils.random_variable_generator import RandomVariableGenerator
 from abc import ABC, abstractmethod
 
-class Simulator(ABC):
+class SimulatorBase(ABC):
     def __init__(self, num_nodes, arrival_rate, duration=1000):
         self.stability_criteria = 0.05
         self.duration = duration

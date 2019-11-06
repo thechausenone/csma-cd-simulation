@@ -1,14 +1,12 @@
-from .simulator_base import Simulator
+from .simulator_base import SimulatorBase
 from .node_status import Status
 from utils.math_functions import percentage_change
 from utils.exponential_backoff import generate_backoff_time
 
-class PersistentSimulator(Simulator):
+class Simulator(SimulatorBase):
     def __init__(self, num_nodes=20, arrival_rate=7, persistent_flag=True):
         super().__init__(num_nodes=num_nodes, arrival_rate=arrival_rate)
         self.persistent_flag = persistent_flag
-        self.num_dropped = 0
-        self.busy_packets_dropped = 0
 
     # Run one iteration of the simulation
     def run_single_iteration(self):
@@ -16,8 +14,7 @@ class PersistentSimulator(Simulator):
         while curr_simulation_time < self.duration:
             try:
                 src_node = self.get_next_node()
-            except Exception as e:
-                print(e)
+            except Exception:
                 break
             curr_simulation_time = src_node.get_queue_head_time()
             node_statuses = self.get_node_statuses(src_node)
@@ -26,7 +23,13 @@ class PersistentSimulator(Simulator):
 
     # Check the stability of the system for varying simulation times
     def _check_stability(self, prev_result, curr_result):
-        pass
+        efficiency = percentage_change(prev_result[0], curr_result[0])
+        throughput = percentage_change(prev_result[1], curr_result[1])
+
+        if efficiency < self.stability_criteria and throughput < self.stability_criteria:
+            return True
+        else:
+            return False
 
     # Returns the node with lowest timestamp packet in the queue's head position
     def get_next_node(self):
@@ -46,13 +49,14 @@ class PersistentSimulator(Simulator):
 
         return curr_min_node
 
+    # Get the status (collision, busy, idle) of every node but the sender on the LAN
     def get_node_statuses(self, src_node):
         statuses = []
         collision_occured = False
         for node in self.nodes:
             if src_node.id != node.id:
                 dest_node_packet_time = node.get_queue_head_time()
-                # source does not need to account for destination because there are no packets in the queue
+                # Source does not need to account for destination because there are no packets in the queue
                 if dest_node_packet_time is None:
                     continue
                 busy_lower_bound, busy_upper_bound = self.compute_bounds(src_node, node)
@@ -64,31 +68,34 @@ class PersistentSimulator(Simulator):
                 else:
                     statuses.append((Status.BUSY, node))
 
+        # If a single collision exists only handle collisions
         if collision_occured:
             result = [status for status in statuses if status[0] is Status.COLLISION]
             return result
 
         return statuses
 
+    # Compute the time it takes for the first and last bit of a packet to reach a node
     def compute_bounds(self, src_node, dest_node):
         num_props = abs(dest_node.id - src_node.id)
         busy_lower_bound = self.prop_time * num_props + src_node.get_queue_head_time()
         busy_upper_bound = busy_lower_bound + self.transmission_time
         return (busy_lower_bound, busy_upper_bound)
 
+    # Handle collision, busy, and idle cases
     def handle_node_statuses(self, src_node, node_statuses):
         collision_occured = False
 
-        # for destination nodes
+        # For destination nodes
         for status, dest_node in node_statuses:
             if status == Status.COLLISION:
                 collision_occured = True
                 dest_node.increment_collisions()
                 wait_time = generate_backoff_time(dest_node.collision_counter)
+                # Drop the packet when collision counter reaches 10
                 if wait_time is None:
                     dest_node.remove_queue_head_time()
                     dest_node.reset_collisions()
-                    self.num_dropped += 1
                 else:
                     _, busy_upper_bound = self.compute_bounds(src_node, dest_node)
                     dest_node.update_queue_times(wait_time + busy_upper_bound)
@@ -96,28 +103,31 @@ class PersistentSimulator(Simulator):
                 continue
             elif status == Status.BUSY:
                 _, busy_upper_bound = self.compute_bounds(src_node, dest_node)
+                # Persistent case
                 if self.persistent_flag:
                     dest_node.update_queue_times(busy_upper_bound)
+                # Non-persistent case
                 else:
                     dest_node.increment_busy_counter()
                     wait_time = generate_backoff_time(dest_node.busy_check_counter)
+                    # Drop the packet when busy counter reaches 10
                     if wait_time is None:
                         dest_node.remove_queue_head_time()
                         dest_node.reset_busy_collisions()
-                        self.busy_packets_dropped += 1
+                        dest_node.busy_dropped_packets += 1
                     else:
                         dest_node.update_queue_times(busy_upper_bound + wait_time)
 
-        # for source node
+        # For source node
         if collision_occured:
             src_node.increment_collisions()
             wait_time = generate_backoff_time(src_node.collision_counter)
+            # Drop the packet when collision counter reaches 10
             if wait_time is None:
                 src_node.remove_queue_head_time()
                 src_node.reset_collisions()
-                self.num_dropped += 1
             else:
-                # update queue time of source node with minimum distance upperbound of reciever
+                # Update queue time of source node with minimum distance upperbound of reciever
                 dest_node_of_min_props = node_statuses[0][1]
                 min_props = abs(src_node.id - node_statuses[0][1].id)
 
@@ -127,23 +137,26 @@ class PersistentSimulator(Simulator):
 
                 _, busy_upper_bound = self.compute_bounds(src_node, dest_node_of_min_props)
                 src_node.update_queue_times(wait_time + busy_upper_bound)
+        # Successful transmission (no collision on the line)
         else:
             src_node.num_successfully_transmitted += 1
             src_node.update_queue_times(src_node.get_queue_head_time() + self.transmission_time)
             src_node.remove_queue_head_time()
             src_node.reset_collisions()
     
+    # Compute efficiency and throughput of system
     def compute_metrics(self):
         total_num_successful = 0
         total_num_collisions = 0
+        total_busy_dropped = 0
 
         for node in self.nodes:
             total_num_successful += node.num_successfully_transmitted
             total_num_collisions += node.num_collisions
+            total_busy_dropped += node.busy_dropped_packets
 
-        print("total_num_successful: {}, total_num_collisions: {}, total_dropped_packets: {}".format(total_num_successful, total_num_collisions, self.num_dropped))
-        efficiency = total_num_successful / (total_num_collisions + total_num_successful + self.busy_packets_dropped)
+        # total_busy_dropped will be 0 for the persistent case
+        efficiency = total_num_successful / (total_num_collisions + total_num_successful + total_busy_dropped)
         throughput = (total_num_successful * self.packet_length) / (self.duration * 1e6)
 
         return (efficiency, throughput)
-

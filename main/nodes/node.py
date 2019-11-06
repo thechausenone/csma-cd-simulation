@@ -3,6 +3,7 @@ from utils.random_variable_generator import RandomVariableGenerator
 class Node:
     def __init__(self, node_id, duration, arrival_rate):
         self.busy_check_counter = 0
+        self.busy_dropped_packets = 0
         self.collision_counter = 0
         self.num_collisions = 0
         self.num_successfully_transmitted = 0
@@ -41,7 +42,7 @@ class Node:
         if self.queue:
             self.queue.pop(0)
 
-    # set each element in queue that's less than `time` to be equal to `time`
+    # Set each element in queue that's less than `time` to be equal to `time`
     def update_queue_times(self, time):
         for index, item in enumerate(self.queue):
             if item < time:
